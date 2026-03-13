@@ -114,6 +114,28 @@ function inicializarBancoDeDados() {
             }
         });
 
+        // IMPORTAÇÃO AUTOMÁTICA (EXECUTAR UMA VEZ)
+const fs = require('fs');
+if (fs.existsSync('./dados-exportados.sql')) {
+    console.log('📥 Importando dados...');
+    const sql = fs.readFileSync('./dados-exportados.sql', 'utf8');
+    const cmds = sql.split('\n').filter(l => l.trim().startsWith('INSERT'));
+    
+    let imported = 0;
+    cmds.forEach(cmd => {
+        try {
+            db.run(cmd);
+            imported++;
+        } catch (err) {
+            // Ignora erros de duplicata
+        }
+    });
+    
+    console.log(`✅ ${imported} registros importados!`);
+    // Deletar arquivo após importar
+    fs.unlinkSync('./dados-exportados.sql');
+}
+
         // Tabela de Profissionais
         db.run(`
             CREATE TABLE IF NOT EXISTS profissionais (
