@@ -1,0 +1,214 @@
+═══════════════════════════════════════════════════════════════
+🚀 GUIA COMPLETO: DEPLOY NO RAILWAY
+═══════════════════════════════════════════════════════════════
+
+📋 PASSO 1: CRIAR CONTA NO RAILWAY
+─────────────────────────────────────────────────────────────
+
+1. Abra seu navegador
+2. Acesse: https://railway.app
+3. Clique em "Start a New Project"
+4. Clique em "Login with GitHub"
+5. Autorize o Railway no GitHub
+6. ✅ Conta criada!
+
+
+📦 PASSO 2: FAZER UPLOAD DO SISTEMA
+─────────────────────────────────────────────────────────────
+
+OPÇÃO A: Via Upload Direto (Mais Fácil)
+────────────────────────────────────────
+
+1. No Railway, clique em "+ New Project"
+2. Escolha "Deploy from a GitHub repo" 
+   OU "Empty Project" → "Deploy from local"
+3. Faça ZIP da pasta clinica-web
+4. Faça upload do ZIP
+5. Aguarde (2-3 minutos)
+6. ✅ Deploy concluído!
+
+OPÇÃO B: Via GitHub (Recomendado)
+──────────────────────────────────
+
+1. Crie repositório no GitHub
+2. Faça push do código:
+   
+   git init
+   git add .
+   git commit -m "Sistema de faturamento"
+   git remote add origin [seu-repositorio]
+   git push -u origin main
+
+3. No Railway, clique em "+ New Project"
+4. Escolha "Deploy from GitHub repo"
+5. Selecione seu repositório
+6. Railway faz deploy automático
+7. ✅ Deploy concluído!
+
+
+🔧 PASSO 3: VERIFICAR DEPLOY
+─────────────────────────────────────────────────────────────
+
+O Railway vai:
+1. ✅ Detectar que é Node.js
+2. ✅ Rodar: npm install
+3. ✅ Rodar: npm start
+4. ✅ Criar banco de dados SQLite
+5. ✅ Inserir usuário admin
+6. ✅ Gerar URL pública
+
+
+🌐 PASSO 4: ACESSAR SEU SISTEMA
+─────────────────────────────────────────────────────────────
+
+1. No Railway, clique no seu projeto
+2. Aba "Deployments" → Veja o status
+3. Aba "Settings" → Copie a URL pública
+4. URL será algo como:
+   
+   https://clinica-production-xxxx.up.railway.app
+
+5. Cole no navegador
+6. Deve aparecer tela de LOGIN
+7. Login: admin
+8. Senha: @CarmoPalitot1
+9. ✅ Sistema funcionando!
+
+
+⚙️ PASSO 5: CONFIGURAÇÕES IMPORTANTES
+─────────────────────────────────────────────────────────────
+
+No Railway, aba "Settings":
+
+1. Trocar Nome do Projeto
+   - Clique em "Project Name"
+   - Mude para: clinica-carmo-palitot
+   
+2. Domínio Personalizado (Opcional)
+   - Aba "Settings" → "Domains"
+   - Pode adicionar domínio próprio
+   - Ou usar o .railway.app mesmo
+
+3. Variáveis de Ambiente (Opcional)
+   - Aba "Variables"
+   - Adicione se precisar
+
+
+💰 PASSO 6: PLANO E CUSTOS
+─────────────────────────────────────────────────────────────
+
+PLANO GRÁTIS:
+- 500 horas/mês GRÁTIS
+- Depois: US$ 0.000231/min (~US$ 0.014/hora)
+
+SEU SISTEMA (sempre ligado = 720h/mês):
+- Primeiras 500h: GRÁTIS
+- Restantes 220h: US$ 3-5/mês (R$ 15-25)
+
+CARTÃO DE CRÉDITO:
+- Railway pede cartão mesmo no grátis
+- Só cobra se passar 500h/mês
+- Pode limitar gastos nas configurações
+
+
+📊 PASSO 7: MONITORAR
+─────────────────────────────────────────────────────────────
+
+No Railway:
+- Aba "Metrics" → Veja uso de CPU/RAM
+- Aba "Deployments" → Histórico de deploys
+- Aba "Logs" → Veja logs do sistema
+
+
+🔄 PASSO 8: ATUALIZAR SISTEMA
+─────────────────────────────────────────────────────────────
+
+OPÇÃO A: Via GitHub (Se usou Git)
+──────────────────────────────────
+1. Modifique arquivos localmente
+2. git add .
+3. git commit -m "Atualização"
+4. git push
+5. Railway faz deploy automático! ✅
+
+OPÇÃO B: Upload Manual
+───────────────────────
+1. Modifique arquivos
+2. Faça novo ZIP
+3. No Railway → "Redeploy"
+4. Upload novo ZIP
+
+
+🆘 SOLUÇÃO DE PROBLEMAS
+─────────────────────────────────────────────────────────────
+
+ERRO: "Build Failed"
+→ Verifique aba "Logs"
+→ Provavelmente falta dependência
+→ Rode: npm install localmente
+→ Tente novo deploy
+
+ERRO: "Application failed to respond"
+→ Verifique se PORT está correto (process.env.PORT)
+→ Nosso server.js já está correto! ✅
+
+ERRO: "Cannot find module"
+→ package.json está correto?
+→ Rode: npm install localmente
+→ Certifique que node_modules não foi enviado
+
+SISTEMA LENTO:
+→ Normal nas primeiras vezes
+→ Railway faz "cold start"
+→ Depois fica rápido
+
+
+✅ CHECKLIST FINAL
+─────────────────────────────────────────────────────────────
+
+Antes de considerar pronto:
+
+□ Deploy completou sem erros
+□ URL pública funcionando
+□ Tela de login aparece
+□ Login com admin/@CarmoPalitot1 funciona
+□ Sistema abre normalmente
+□ Pode adicionar lançamento
+□ Pode ver relatórios
+□ Botão "Sair" funciona
+□ Logout e login novamente funciona
+
+
+🎯 PRÓXIMOS PASSOS
+─────────────────────────────────────────────────────────────
+
+1. ✅ Trocar senha do admin
+2. ✅ Migrar dados do SQLite local (se tiver)
+3. ✅ Configurar backup automático
+4. ✅ Adicionar domínio personalizado (opcional)
+5. ✅ Criar mais usuários (se necessário)
+
+
+💡 DICAS IMPORTANTES
+─────────────────────────────────────────────────────────────
+
+✅ Salve a URL num lugar seguro
+✅ Adicione aos favoritos do navegador
+✅ Teste acesso pelo celular
+✅ Configure notificações de custo no Railway
+✅ Faça backup do banco de dados regularmente
+
+
+📞 SUPORTE
+─────────────────────────────────────────────────────────────
+
+Problemas? Me avise e vou te ajudar!
+
+- Print da tela de erro
+- Print do log do Railway
+- Descrição do problema
+
+
+═══════════════════════════════════════════════════════════════
+Boa sorte com o deploy! 🚀
+═══════════════════════════════════════════════════════════════
