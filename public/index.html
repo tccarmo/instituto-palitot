@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carmo & Palitot Health Institute - Sistema de Faturamento</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo-text">
+                    <h1>CARMO & PALITOT</h1>
+                    <p>HEALTH INSTITUTE</p>
+                </div>
+            </div>
+            <div class="header-user">
+                <span id="nomeUsuarioLogado"></span>
+                <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+            </div>
+        </header>
+
+        <!-- Dashboard Principal -->
+        <main class="main-content">
+            <div class="dashboard">
+                <div class="dashboard-header">
+                    <button class="btn-nav" onclick="mesAnterior()">◀</button>
+                    <h2>Faturamento do Mês - <span id="mesAtual"></span></h2>
+                    <input type="month" id="seletorMes" onchange="carregarMesSelecionado()">
+                    <button class="btn-nav" onclick="proximoMes()">▶</button>
+                </div>
+                <div class="faturamento-cards" id="faturamentoCards">
+                    <div class="card">
+                        <h3>Carregando...</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="abrirModalLancamento()">
+                    <span class="icon">+</span> Adicionar Lançamento
+                </button>
+                <button class="btn-secondary" onclick="abrirConfiguracoes()">
+                    <span class="icon">⚙</span> Configurações
+                </button>
+                <button class="btn-secondary" onclick="abrirRelatorios()">
+                    <span class="icon">📊</span> Relatórios
+                </button>
+                <button class="btn-secondary" onclick="abrirModal('modalDespesas')">
+                    <span class="icon">🧾</span> Despesas
+                </button>
+                <button class="btn-secondary" onclick="abrirModal('modalRetiradas')">
+                    <span class="icon">💰</span> Retiradas
+                </button>
+            </div>
+
+            <!-- Tabela de Lançamentos Recentes -->
+            <div class="lancamentos-recentes">
+                <h3>Lançamentos Recentes</h3>
+                
+                <!-- Filtros -->
+                <div class="filtros-lancamentos">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Buscar Paciente</label>
+                            <input type="text" id="filtroPaciente" placeholder="Digite o nome do paciente...">
+                        </div>
+                        <div class="form-group">
+                            <label>Data Inicial</label>
+                            <input type="date" id="filtroDataInicial">
+                        </div>
+                        <div class="form-group">
+                            <label>Data Final</label>
+                            <input type="date" id="filtroDataFinal">
+                        </div>
+                        <div class="form-group">
+                            <label>Profissional</label>
+                            <select id="filtroProfissional">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Procedimento</label>
+                            <select id="filtroProcedimento">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filtro-acoes">
+                        <button class="btn-primary btn-small" onclick="aplicarFiltrosLancamentos()">Filtrar</button>
+                        <button class="btn-secondary btn-small" onclick="limparFiltrosLancamentos()">Limpar</button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="tabelaLancamentos">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Paciente</th>
+                                <th>Procedimento</th>
+                                <th>Profissional</th>
+                                <th>Valor</th>
+                                <th>Pagamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabelaLancamentos">
+                            <tr>
+                                <td colspan="7" style="text-align: center;">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginação -->
+                <div class="paginacao">
+                    <button class="btn-secondary btn-small" onclick="paginaAnterior()" id="btnPaginaAnterior">◀ Anterior</button>
+                    <span id="infoPagina">Página 1</span>
+                    <button class="btn-secondary btn-small" onclick="proximaPagina()" id="btnProximaPagina">Próxima ▶</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Adicionar Lançamento -->
+    <div id="modalLancamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Lançamento</h2>
+                <span class="close" onclick="fecharModal('modalLancamento')">&times;</span>
+            </div>
+            <form id="formLancamento" onsubmit="salvarLancamento(event)">
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="dataLancamento" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nome do Paciente</label>
+                    <input type="text" id="nomePaciente" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Procedimento Realizado</label>
+                    <select id="procedimento" required onchange="verificarIndicacao()">
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="text" id="valorLancamento" placeholder="0,00" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Forma de Pagamento</label>
+                    <select id="formaPagamento" required onchange="mostrarParcelas()">
+                        <option value="">Selecione...</option>
+                        <option value="pix">PIX</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="debito">Débito</option>
+                        <option value="credito">Crédito</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grupoParcelas" style="display: none;">
+                    <label>Número de Parcelas</label>
+                    <select id="numeroParcelas">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                        <option value="4">4x</option>
+                        <option value="5">5x</option>
+                        <option value="6">6x</option>
+                        <option value="7">7x</option>
+                        <option value="8">8x</option>
+                        <option value="9">9x</option>
+                        <option value="10">10x</option>
+                        <option value="11">11x</option>
+                        <option value="12">12x</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Profissional Executante</label>
+                    <select id="profissionalExecutante" required>
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="temComissao" onchange="mostrarComissao()">
+                        Comissão
+                    </label>
+                </div>
+
+                <div id="grupoComissao" style="display: none;">
+                    <div class="form-group">
+                        <label>Comissão para</label>
+                        <select id="comissaoPara">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0 0 150px;">
+                            <label>Tipo de Comissão</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="tipoComissao" value="percentual" checked> %</label>
+                                <label><input type="radio" name="tipoComissao" value="reais"> R$</label>
+                            </div>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Valor da Comissão</label>
+                            <input type="text" id="valorComissao" placeholder="0,00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group checkbox-group" id="grupoIndicacaoCheckbox" style="display: none;">
+                    <label>
+                        <input type="checkbox" id="temIndicacao" onchange="mostrarIndicacao()">
+                        Indicação
+                    </label>
+                </div>
+
+                <div id="grupoIndicacao" style="display: none;">
+                    <div class="form-group">
+                        <label>Indicação de</label>
+                        <select id="indicadoPor">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('modalLancamento')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Configurações -->
+    <div id="modalConfiguracoes" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Configurações</h2>
+                <span class="close" onclick="fecharModal('modalConfiguracoes')">&times;</span>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-button active" onclick="abrirTab(event, 'tabProfissionais')">Profissionais</button>
+                <button class="tab-button" onclick="abrirTab(event, 'tabProcedimentos')">Procedimentos</button>
+                <button class="tab-button" onclick="abrirTab(event, 'tabImpostos')">Impostos e Taxas</button>
+            </div>
+
+            <!-- Tab: Profissionais -->
+            <div id="tabProfissionais" class="tab-content active">
+                <h3>Adicionar Profissional</h3>
+                <form id="formProfissional" onsubmit="salvarProfissional(event)">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="nomeProfissional" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Função</label>
+                        <select id="funcaoProfissional" required onchange="atualizarOrgaoClasse()">
+                            <option value="">Selecione...</option>
+                            <option value="medico">Médico</option>
+                            <option value="fisioterapeuta">Fisioterapeuta</option>
+                            <option value="enfermeira">Enfermeira</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label id="labelOrgaoClasse">Número do Órgão de Classe</label>
+                        <input type="text" id="numeroOrgaoClasse" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btnSalvarProfissional">Adicionar Profissional</button>
+                </form>
+
+                <h3>Profissionais Cadastrados</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Função</th>
+                                <th>Registro</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaProfissionais">
+                            <tr>
+                                <td colspan="4" style="text-align: center;">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Procedimentos -->
+            <div id="tabProcedimentos" class="tab-content">
+                <h3>Adicionar Procedimento</h3>
+                <form id="formProcedimento" onsubmit="salvarProcedimento(event)">
+                    <div class="form-group">
+                        <label>Nome do Procedimento</label>
+                        <input type="text" id="nomeProcedimento" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="tipoProcedimento" value="clinico" checked> Clínico</label>
+                            <label><input type="radio" name="tipoProcedimento" value="hospitalar"> Hospitalar</label>
+                            <label><input type="radio" name="tipoProcedimento" value="cursos"> Cursos</label>
+                            <label><input type="radio" name="tipoProcedimento" value="isento"> Isento</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" id="temBonificacaoIndicacao" onchange="mostrarBonificacao()">
+                            Bonificação por Indicação
+                        </label>
+                    </div>
+
+                    <div id="grupoBonificacao" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 0 0 150px;">
+                                <label>Tipo</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="tipoBonificacao" value="percentual" checked> %</label>
+                                    <label><input type="radio" name="tipoBonificacao" value="reais"> R$</label>
+                                </div>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Valor da Bonificação</label>
+                                <input type="text" id="valorBonificacao" placeholder="0,00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btnSalvarProcedimento">Adicionar Procedimento</button>
+                </form>
+
+                <h3>Procedimentos Cadastrados</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th>Bonificação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaProcedimentos">
+                            <tr>
+                                <td colspan="4" style="text-align: center;">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Impostos e Taxas -->
+            <div id="tabImpostos" class="tab-content">
+                <h3>Configurar Impostos e Taxas</h3>
+                <form id="formImpostos" onsubmit="salvarImpostos(event)">
+                    <h4>Impostos (%)</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Clínico</label>
+                            <input type="number" id="impostoClinico" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Hospitalar</label>
+                            <input type="number" id="impostoHospitalar" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Cursos</label>
+                            <input type="number" id="impostoCursos" step="0.01" value="0">
+                        </div>
+                    </div>
+
+                    <h4>Taxas de Cartão (%)</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Débito</label>
+                            <input type="number" id="taxaDebito" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Crédito à Vista</label>
+                            <input type="number" id="taxaCreditoVista" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Crédito Parcelado</label>
+                            <input type="number" id="taxaCreditoParcelado" step="0.01" value="0">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Salvar Configurações</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Relatórios -->
+    <div id="modalRelatorios" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Relatórios</h2>
+                <span class="close" onclick="fecharModal('modalRelatorios')">&times;</span>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-button active" onclick="abrirTab(event, 'tabRelatorioGeral')">Relatório Geral</button>
+                <button class="tab-button" onclick="abrirTab(event, 'tabRelatorioPagamento')">Relatório de Produção</button>
+                <button class="tab-button" onclick="abrirTab(event, 'tabValoresReceber')">Valores a Receber</button>
+                <button class="tab-button" onclick="abrirTab(event, 'tabRelatorioRepasse')">Relatório de Repasse</button>
+            </div>
+
+            <!-- Tab: Relatório Geral -->
+            <div id="tabRelatorioGeral" class="tab-content active">
+                <h3>Filtros</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data Inicial</label>
+                        <input type="date" id="dataInicialGeral">
+                    </div>
+                    <div class="form-group">
+                        <label>Data Final</label>
+                        <input type="date" id="dataFinalGeral">
+                    </div>
+                    <div class="form-group">
+                        <label>Profissional</label>
+                        <select id="filtroProfissionalGeral">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Procedimento</label>
+                        <select id="filtroProcedimentoGeral">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Formas de Pagamento</label>
+                        <div class="checkbox-group-inline">
+                            <label><input type="checkbox" id="filtroPixGeral" checked> PIX</label>
+                            <label><input type="checkbox" id="filtroDinheiroGeral" checked> Dinheiro</label>
+                            <label><input type="checkbox" id="filtroDebitoGeral" checked> Débito</label>
+                            <label><input type="checkbox" id="filtroCreditoGeral" checked> Crédito</label>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorioGeral()">Gerar Relatório</button>
+                
+                <div id="resultadoRelatorioGeral" style="display: none; margin-top: 20px;">
+                    <div class="relatorio-acoes">
+                        <button class="btn-secondary" onclick="exportarPDF('geral')">Exportar PDF</button>
+                        <button class="btn-secondary" onclick="exportarExcel('geral')">Exportar Excel</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaRelatorioGeral">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Paciente</th>
+                                    <th>Procedimento</th>
+                                    <th>Profissional</th>
+                                    <th>Pagamento</th>
+                                    <th>Valor Bruto</th>
+                                    <th>Impostos</th>
+                                    <th>Taxas</th>
+                                    <th>Comissão</th>
+                                    <th>Indicação</th>
+                                    <th>Valor Líquido</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabelaRelatorioGeral">
+                            </tbody>
+                            <tfoot id="totalRelatorioGeral">
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Relatório de Produção -->
+            <div id="tabRelatorioPagamento" class="tab-content">
+                <h3>Filtros</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data Inicial</label>
+                        <input type="date" id="dataInicialPagamento">
+                    </div>
+                    <div class="form-group">
+                        <label>Data Final</label>
+                        <input type="date" id="dataFinalPagamento">
+                    </div>
+                    <div class="form-group">
+                        <label>Profissional</label>
+                        <select id="filtroProfissionalPagamento" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorioPagamento()">Gerar Relatório</button>
+                
+                <div id="resultadoRelatorioPagamento" style="display: none; margin-top: 20px;">
+                    <div class="relatorio-acoes">
+                        <button class="btn-secondary" onclick="exportarPDF('pagamento')">Exportar PDF</button>
+                        <button class="btn-secondary" onclick="exportarExcel('pagamento')">Exportar Excel</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaRelatorioPagamento">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Paciente</th>
+                                    <th>Serviço</th>
+                                    <th>Valor Bruto</th>
+                                    <th>Impostos</th>
+                                    <th>Taxas</th>
+                                    <th>Comissões Pagas</th>
+                                    <th>Comissões Recebidas</th>
+                                    <th>Indicações Recebidas</th>
+                                    <th>Valor a Receber</th>
+                                    <th>Parcelas</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabelaRelatorioPagamento">
+                            </tbody>
+                            <tfoot id="totalRelatorioPagamento">
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Valores a Receber -->
+            <div id="tabValoresReceber" class="tab-content">
+                <h3>Filtros</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mês/Ano</label>
+                        <input type="month" id="mesAnoReceber">
+                    </div>
+                    <div class="form-group">
+                        <label>Profissional</label>
+                        <select id="filtroProfissionalReceber">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorioValoresReceber()">Gerar Relatório</button>
+                
+                <div id="resultadoValoresReceber" style="display: none; margin-top: 20px;">
+                    <div class="relatorio-acoes">
+                        <button class="btn-secondary" onclick="exportarPDF('receber')">Exportar PDF</button>
+                        <button class="btn-secondary" onclick="exportarExcel('receber')">Exportar Excel</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaValoresReceber">
+                            <thead>
+                                <tr>
+                                    <th>Profissional</th>
+                                    <th>Data Original</th>
+                                    <th>Paciente</th>
+                                    <th>Serviço</th>
+                                    <th>Forma Pagamento</th>
+                                    <th>Parcela</th>
+                                    <th>Valor Bruto</th>
+                                    <th>Impostos</th>
+                                    <th>Taxas</th>
+                                    <th>Comissões/Ind.</th>
+                                    <th>Valor Líquido</th>
+                                    <th>Mês Recebimento</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabelaValoresReceber">
+                            </tbody>
+                            <tfoot id="totalValoresReceber">
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab: Relatório de Repasse -->
+            <div id="tabRelatorioRepasse" class="tab-content">
+                <h3>Filtros</h3>
+                <p style="background: #FFF3CD; padding: 15px; border-radius: 8px; border-left: 4px solid #FFC107; margin-bottom: 20px;">
+                    <strong>ℹ️ Como funciona:</strong><br>
+                    • <strong>PIX/Dinheiro:</strong> Desconta impostos, paga no mesmo mês<br>
+                    • <strong>Débito:</strong> Desconta impostos + taxas, paga no mesmo mês<br>
+                    • <strong>Crédito 1x:</strong> Desconta impostos + taxas no mês, paga no mês seguinte<br>
+                    • <strong>Crédito parcelado:</strong> Desconta impostos + taxas no mês, paga parcelas nos meses seguintes
+                </p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mês/Ano de Competência</label>
+                        <input type="month" id="mesAnoRepasse" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Profissional</label>
+                        <select id="filtroProfissionalRepasse">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorioRepasse()">Gerar Relatório</button>
+                
+                <div id="resultadoRelatorioRepasse" style="display: none; margin-top: 20px;">
+                    <div class="relatorio-acoes">
+                        <button class="btn-secondary" onclick="exportarPDF('repasse')">Exportar PDF</button>
+                        <button class="btn-secondary" onclick="exportarExcel('repasse')">Exportar Excel</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tabelaRelatorioRepasse">
+                            <thead>
+                                <tr>
+                                    <th>Profissional</th>
+                                    <th>Valor Faturado Bruto</th>
+                                    <th>(-) Impostos</th>
+                                    <th>(-) Taxas</th>
+                                    <th>(+) Parcelas Meses Anteriores</th>
+                                    <th>Valor Líquido a Repassar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabelaRelatorioRepasse">
+                            </tbody>
+                            <tfoot id="totalRelatorioRepasse">
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Despesas -->
+    <div id="modalDespesas" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🧾 Gerenciamento de Despesas</h2>
+                <span class="close" onclick="fecharModal('modalDespesas')">&times;</span>
+            </div>
+            
+            <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+                <button class="btn-primary" onclick="abrirModal('modalCategoriasDespesas')">📁 Gerenciar Categorias</button>
+                <button class="btn-primary" onclick="abrirModal('modalLancamentoDespesa')">➕ Lançar Despesa</button>
+                <button class="btn-primary" onclick="abrirModal('modalRelatorioDespesas')">📊 Relatório de Despesas</button>
+            </div>
+
+            <!-- Lista de Despesas Recentes -->
+            <div class="card" style="background: white; border: 1px solid #ddd;">
+                <h4 style="color: var(--gold-dark); margin-bottom: 15px;">Últimas Despesas</h4>
+                <div style="overflow-x: auto;">
+                    <table id="tabelaDespesasRecentes" style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: var(--gold-primary);">
+                            <tr>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Data</th>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Tipo</th>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Categoria</th>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Subcategoria</th>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Descrição</th>
+                                <th style="padding: 12px; text-align: right; color: white; border-bottom: 2px solid #ddd;">Valor</th>
+                                <th style="padding: 12px; text-align: center; color: white; border-bottom: 2px solid #ddd;">Forma Pagto</th>
+                                <th style="padding: 12px; text-align: center; color: white; border-bottom: 2px solid #ddd;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoDespesasRecentes"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Gerenciar Categorias de Despesas -->
+    <div id="modalCategoriasDespesas" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📁 Gerenciar Categorias de Despesas</h2>
+                <span class="close" onclick="fecharModal('modalCategoriasDespesas')">&times;</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
+                <!-- Adicionar Categoria -->
+                <div class="card">
+                    <h4>Adicionar Categoria</h4>
+                    <form id="formCategoria" onsubmit="salvarCategoria(event)">
+                        <div class="form-group">
+                            <label>Nome da Categoria *</label>
+                            <input type="text" id="nomeCategoria" required placeholder="Ex: Secretária, Impostos, Aluguel">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo *</label>
+                            <select id="tipoCategoria" required>
+                                <option value="fixa">Fixa</option>
+                                <option value="variavel">Variável</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Adicionar Categoria</button>
+                    </form>
+                </div>
+
+                <!-- Adicionar Subcategoria -->
+                <div class="card">
+                    <h4>Adicionar Subcategoria</h4>
+                    <form id="formSubcategoria" onsubmit="salvarSubcategoria(event)">
+                        <div class="form-group">
+                            <label>Categoria *</label>
+                            <select id="categoriaSubcategoria" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nome da Subcategoria *</label>
+                            <input type="text" id="nomeSubcategoria" required placeholder="Ex: Salário, Alimentação, ISS">
+                        </div>
+                        <button type="submit" class="btn-primary">Adicionar Subcategoria</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Categorias -->
+            <div class="card" style="margin-top: 30px;">
+                <h4>Categorias Cadastradas</h4>
+                <div id="listaCategorias"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Lançamento de Despesa -->
+    <div id="modalLancamentoDespesa" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Lançar Despesa</h2>
+                <span class="close" onclick="fecharModal('modalLancamentoDespesa')">&times;</span>
+            </div>
+
+            <form id="formDespesa" onsubmit="salvarDespesa(event)">
+                <div class="form-group">
+                    <label>Data *</label>
+                    <input type="date" id="dataDespesa" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Despesa *</label>
+                    <select id="tipoDespesa" onchange="atualizarCategoriasDespesa()" required>
+                        <option value="">Selecione...</option>
+                        <option value="fixa">Fixa</option>
+                        <option value="variavel">Variável</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grupoCategorias" style="display: none;">
+                    <label>Categoria *</label>
+                    <select id="categoriaDespesa" onchange="atualizarSubcategoriasDespesa()"></select>
+                </div>
+
+                <div class="form-group" id="grupoSubcategorias" style="display: none;">
+                    <label>Subcategoria *</label>
+                    <select id="subcategoriaDespesa"></select>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="descricaoDespesa" placeholder="Descrição adicional (opcional)">
+                </div>
+
+                <div class="form-group">
+                    <label>Valor (R$) *</label>
+                    <input type="text" id="valorDespesa" placeholder="0,00" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Forma de Pagamento *</label>
+                    <select id="formaPagamentoDespesa" onchange="mostrarParcelasDespesa()" required>
+                        <option value="pix">PIX</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="debito">Débito</option>
+                        <option value="credito">Crédito</option>
+                        <option value="boleto">Boleto</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grupoParcelasDespesa" style="display: none;">
+                    <label>Número de Parcelas</label>
+                    <select id="parcelasDespesa">
+                        <option value="1">À vista</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                        <option value="4">4x</option>
+                        <option value="5">5x</option>
+                        <option value="6">6x</option>
+                        <option value="7">7x</option>
+                        <option value="8">8x</option>
+                        <option value="9">9x</option>
+                        <option value="10">10x</option>
+                        <option value="11">11x</option>
+                        <option value="12">12x</option>
+                        <option value="18">18x</option>
+                        <option value="24">24x</option>
+                        <option value="36">36x</option>
+                        <option value="48">48x</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('modalLancamentoDespesa')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Despesa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Relatório de Despesas -->
+    <div id="modalRelatorioDespesas" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📊 Relatório de Despesas</h2>
+                <span class="close" onclick="fecharModal('modalRelatorioDespesas')">&times;</span>
+            </div>
+
+            <h3>Filtros</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Data Inicial</label>
+                    <input type="date" id="dataInicialDespesas">
+                </div>
+                <div class="form-group">
+                    <label>Data Final</label>
+                    <input type="date" id="dataFinalDespesas">
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="filtroTipoDespesa">
+                        <option value="">Todos</option>
+                        <option value="fixa">Fixa</option>
+                        <option value="variavel">Variável</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="filtroCategoriaDespesa">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Forma Pagamento</label>
+                    <select id="filtroFormaPagamentoDespesa">
+                        <option value="">Todas</option>
+                        <option value="pix">PIX</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="debito">Débito</option>
+                        <option value="credito">Crédito</option>
+                        <option value="boleto">Boleto</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <button class="btn-primary" onclick="gerarRelatorioDespesas()">Gerar Relatório</button>
+                <button class="btn-secondary" onclick="exportarRelatorioDespesasPDF()">Exportar PDF</button>
+            </div>
+
+            <div id="resultadoRelatorioDespesas" style="display: none; margin-top: 30px;">
+                <div class="card">
+                    <h4>Despesas Agrupadas por Categoria</h4>
+                    <div id="despesasAgrupadas"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <!-- Modal: Retiradas -->
+    <div id="modalRetiradas" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>💰 Retiradas de Lucros/Dividendos</h2>
+                <span class="close" onclick="fecharModal('modalRetiradas')">&times;</span>
+            </div>
+            
+            <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+                <button class="btn-primary" onclick="abrirModal('modalNovaRetirada')">➕ Realizar Retirada</button>
+                <button class="btn-primary" onclick="abrirModal('modalRelatorioRetiradas')">📊 Relatório por Período</button>
+                <button class="btn-primary" onclick="abrirModal('modalRelatorioRetiradaAnual')">📅 Relatório Anual</button>
+            </div>
+
+            <!-- Lista de Retiradas Recentes -->
+            <div class="card" style="background: white; border: 1px solid #ddd;">
+                <h4 style="color: var(--gold-dark); margin-bottom: 15px;">Últimas Retiradas</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: var(--gold-primary);">
+                            <tr>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Data</th>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Sócio</th>
+                                <th style="padding: 12px; text-align: left; color: white; border-bottom: 2px solid #ddd;">Descrição</th>
+                                <th style="padding: 12px; text-align: right; color: white; border-bottom: 2px solid #ddd;">Valor</th>
+                                <th style="padding: 12px; text-align: center; color: white; border-bottom: 2px solid #ddd;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoRetiradásRecentes"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nova Retirada -->
+    <div id="modalNovaRetirada" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Realizar Retirada</h2>
+                <span class="close" onclick="fecharModal('modalNovaRetirada')">&times;</span>
+            </div>
+
+            <form id="formRetirada" onsubmit="salvarRetirada(event)">
+                <div class="form-group">
+                    <label>Data *</label>
+                    <input type="date" id="dataRetirada" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Sócio *</label>
+                    <select id="profissionalRetirada" required>
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Valor (R$) *</label>
+                    <input type="text" id="valorRetirada" placeholder="0,00" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="descricaoRetirada" placeholder="Ex: Retirada mensal, dividendos...">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('modalNovaRetirada')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Retirada</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Relatório por Período -->
+    <div id="modalRelatorioRetiradas" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📊 Relatório de Retiradas por Período</h2>
+                <span class="close" onclick="fecharModal('modalRelatorioRetiradas')">&times;</span>
+            </div>
+
+            <h3>Filtros</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Data Inicial</label>
+                    <input type="date" id="dataInicialRetiradas">
+                </div>
+                <div class="form-group">
+                    <label>Data Final</label>
+                    <input type="date" id="dataFinalRetiradas">
+                </div>
+                <div class="form-group">
+                    <label>Sócio</label>
+                    <select id="filtroSocioRetiradas">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <button class="btn-primary" onclick="gerarRelatorioRetiradas()">Gerar Relatório</button>
+                <button class="btn-secondary" onclick="exportarRelatorioRetiradas()">Exportar PDF</button>
+            </div>
+
+            <div id="resultadoRelatorioRetiradas" style="display: none; margin-top: 30px;">
+                <div class="card">
+                    <div id="conteudoRelatorioRetiradas"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Relatório Anual -->
+    <div id="modalRelatorioRetiradaAnual" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📅 Relatório Anual de Retiradas</h2>
+                <span class="close" onclick="fecharModal('modalRelatorioRetiradaAnual')">&times;</span>
+            </div>
+
+            <h3>Filtros</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ano</label>
+                    <select id="anoRelatorioAnual">
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <button class="btn-primary" onclick="gerarRelatorioAnual()">Gerar Relatório</button>
+                <button class="btn-secondary" onclick="exportarRelatorioAnual()">Exportar PDF</button>
+            </div>
+
+            <div id="resultadoRelatorioAnual" style="display: none; margin-top: 30px;">
+                <div class="card">
+                    <div id="conteudoRelatorioAnual"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bibliotecas para exportação -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>
