@@ -84,6 +84,15 @@ app.get('/api/session', (req, res) => {
 });
 
 // Inicializar banco de dados
+const fs = require('fs');
+
+// Se não existe clinica.db, copiar do backup
+if (!fs.existsSync('./clinica.db') && fs.existsSync('./clinica-backup.db')) {
+    console.log('📋 Copiando banco de dados do backup...');
+    fs.copyFileSync('./clinica-backup.db', './clinica.db');
+    console.log('✅ Banco copiado!');
+}
+
 const db = new sqlite3.Database('./clinica.db', (err) => {
     if (err) {
         console.error('Erro ao conectar ao banco de dados:', err);
