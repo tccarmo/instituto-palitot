@@ -1110,13 +1110,22 @@ function abrirTab(event, tabId) {
 
     const targetTab = document.getElementById(tabId);
     console.log('Target tab:', targetTab);
-    
+
     if (targetTab) {
         targetTab.classList.add('active');
         console.log('Tab ativada!');
     }
-    
+
     event.target.classList.add('active');
+
+    if (tabId === 'tabProdutividade') {
+        carregarProcedimentosProdutividade();
+        popularMedicosProdutividade();
+        const hoje = new Date();
+        const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('mesInicioProdutividade').value = mesAtual;
+        document.getElementById('mesFimProdutividade').value = mesAtual;
+    }
 }
 
 // Relatórios
@@ -2963,3 +2972,281 @@ document.addEventListener('DOMContentLoaded', function() {
     // Definir data atual nos campos de data
     definirDataAtual();
 });
+
+// ============================================
+// RELATÓRIO DE PRODUTIVIDADE
+// ============================================
+
+// Carregar procedimentos no filtro
+async function carregarProcedimentosProdutividade() {
+    const procedimentos = await fetchAPI('/api/procedimentos');
+    const lista = document.getElementById('listaProcedimentosProdutividade');
+    
+    lista.innerHTML = procedimentos.map(p => `
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" class="checkbox-procedimento" value="${p.nome}" checked>
+            <span>${p.nome}</span>
+        </label>
+    `).join('');
+}
+
+// Toggle todos procedimentos
+function toggleTodosProcedimentos() {
+    const todos = document.getElementById('todosProcedimentosProdutividade').checked;
+    document.querySelectorAll('.checkbox-procedimento').forEach(cb => {
+        cb.checked = todos;
+    });
+}
+
+// Popular select de médicos
+async function popularMedicosProdutividade() {
+    const profissionais = await fetchAPI('/api/profissionais');
+    const select = document.getElementById('medicoProdutividade');
+    
+    profissionais.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.nome;
+        option.textContent = p.nome;
+        select.appendChild(option);
+    });
+}
+
+// Calcular impostos e taxas
+function calcularImpostosETaxasProdutividade(lancamento, impostos) {
+    const valor = parseFloat(lancamento.valor);
+    let impostoValor = 0;
+    let taxaValor = 0;
+    
+    // Imposto baseado no tipo
+    const tipoProc = lancamento.tipo_procedimento || 'clinico';
+    if (tipoProc === 'clinico') {
+        impostoValor = (valor * (impostos.imposto_clinico || 0)) / 100;
+    } else if (tipoProc === 'hospitalar') {
+        impostoValor = (valor * (impostos.imposto_hospitalar || 0)) / 100;
+    } else if (tipoProc === 'cursos') {
+        impostoValor = (valor * (impostos.imposto_cursos || 0)) / 100;
+    }
+    
+    // Taxa baseada na forma de pagamento
+    const forma = lancamento.forma_pagamento;
+    const parcelas = lancamento.parcelas || 1;
+    
+    if (forma === 'debito') {
+        taxaValor = (valor * (impostos.taxa_debito || 0)) / 100;
+    } else if (forma === 'credito') {
+        if (parcelas === 1) {
+            taxaValor = (valor * (impostos.taxa_credito_vista || 0)) / 100;
+        } else {
+            taxaValor = (valor * (impostos.taxa_credito_parcelado || 0)) / 100;
+        }
+    }
+    
+    return { impostoValor, taxaValor };
+}
+
+// Gerar relatório
+async function gerarRelatorioProdutividade() {
+    const mesInicio = document.getElementById('mesInicioProdutividade').value;
+    const mesFim = document.getElementById('mesFimProdutividade').value;
+    const medico = document.getElementById('medicoProdutividade').value;
+    const tipoValor = document.getElementById('tipoValorProdutividade').value;
+    
+    if (!mesInicio || !mesFim) {
+        alert('Selecione o período');
+        return;
+    }
+    
+    // Pegar procedimentos selecionados
+    const checkboxes = document.querySelectorAll('.checkbox-procedimento:checked');
+    const procedimentos = Array.from(checkboxes).map(cb => cb.value).join(',');
+    
+    if (!procedimentos) {
+        alert('Selecione pelo menos um procedimento');
+        return;
+    }
+    
+    // Buscar dados
+    let query = `/api/relatorio-produtividade?mes_inicio=${mesInicio}&mes_fim=${mesFim}&profissional=${medico}&procedimentos=${procedimentos}`;
+    const data = await fetchAPI(query);
+    
+    // Processar dados
+    processarDadosProdutividade(data, mesInicio, mesFim, tipoValor);
+}
+
+// Processar e exibir dados
+function processarDadosProdutividade(data, mesInicio, mesFim, tipoValor) {
+    const { lancamentos, impostos } = data;
+    
+    // Gerar lista de meses
+    const meses = gerarListaMeses(mesInicio, mesFim);
+    
+    // Agrupar por procedimento e mês
+    const agrupado = {};
+    
+    lancamentos.forEach(l => {
+        const proc = l.procedimento;
+        const mes = l.data.substring(0, 7); // YYYY-MM
+        
+        if (!agrupado[proc]) {
+            agrupado[proc] = {};
+            meses.forEach(m => agrupado[proc][m] = 0);
+        }
+        
+        // Calcular valor (bruto ou líquido)
+        let valor = parseFloat(l.valor);
+        
+        if (tipoValor === 'liquido') {
+            const { impostoValor, taxaValor } = calcularImpostosETaxasProdutividade(l, impostos);
+            valor = valor - impostoValor - taxaValor;
+        }
+        
+        agrupado[proc][mes] += valor;
+    });
+    
+    // Renderizar tabela
+    renderizarTabelaProdutividade(agrupado, meses, tipoValor);
+    
+    // Renderizar gráfico
+    renderizarGraficoProdutividade(agrupado, meses);
+    
+    // Mostrar resultado
+    document.getElementById('resultadoProdutividade').style.display = 'block';
+}
+
+// Gerar lista de meses entre início e fim
+function gerarListaMeses(inicio, fim) {
+    const meses = [];
+    const [anoIni, mesIni] = inicio.split('-').map(Number);
+    const [anoFim, mesFim] = fim.split('-').map(Number);
+    
+    let ano = anoIni;
+    let mes = mesIni;
+    
+    while (ano < anoFim || (ano === anoFim && mes <= mesFim)) {
+        meses.push(`${ano}-${String(mes).padStart(2, '0')}`);
+        mes++;
+        if (mes > 12) {
+            mes = 1;
+            ano++;
+        }
+    }
+    
+    return meses;
+}
+
+// Renderizar tabela
+function renderizarTabelaProdutividade(agrupado, meses, tipoValor) {
+    const tabela = document.getElementById('tabelaProdutividade');
+    
+    let html = '<thead><tr>';
+    html += '<th style="background: var(--gold-primary); color: white; padding: 12px; text-align: left; position: sticky; left: 0; z-index: 10;">Procedimento</th>';
+    
+    meses.forEach(mes => {
+        const [ano, m] = mes.split('-');
+        const mesNome = new Date(ano, m - 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        html += `<th style="background: var(--gold-primary); color: white; padding: 12px; text-align: right;">${mesNome}</th>`;
+    });
+    
+    html += '<th style="background: var(--gold-dark); color: white; padding: 12px; text-align: right; font-weight: bold;">TOTAL</th>';
+    html += '</tr></thead><tbody>';
+    
+    // Totais por mês
+    const totaisMes = {};
+    meses.forEach(m => totaisMes[m] = 0);
+    let totalGeral = 0;
+    
+    // Linhas de procedimentos
+    Object.keys(agrupado).sort().forEach((proc, idx) => {
+        const valores = agrupado[proc];
+        let totalProc = 0;
+        
+        html += `<tr style="background: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'};">`;
+        html += `<td style="padding: 10px; font-weight: bold; position: sticky; left: 0; background: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'}; z-index: 5;">${proc}</td>`;
+        
+        meses.forEach(mes => {
+            const valor = valores[mes] || 0;
+            totalProc += valor;
+            totaisMes[mes] += valor;
+            
+            html += `<td style="padding: 10px; text-align: right; ${valor > 0 ? 'font-weight: 600;' : 'color: #999;'}">
+                R$ ${formatarReal(valor)}
+            </td>`;
+        });
+        
+        totalGeral += totalProc;
+        
+        html += `<td style="padding: 10px; text-align: right; font-weight: bold; background: #f0f0f0;">R$ ${formatarReal(totalProc)}</td>`;
+        html += '</tr>';
+    });
+    
+    // Linha de totais
+    html += '<tr style="background: var(--gold-dark); color: white; font-weight: bold;">';
+    html += '<td style="padding: 12px;">TOTAL</td>';
+    
+    meses.forEach(mes => {
+        html += `<td style="padding: 12px; text-align: right;">R$ ${formatarReal(totaisMes[mes])}</td>`;
+    });
+    
+    html += `<td style="padding: 12px; text-align: right; font-size: 1.1em;">R$ ${formatarReal(totalGeral)}</td>`;
+    html += '</tr>';
+    
+    html += '</tbody>';
+    tabela.innerHTML = html;
+}
+
+// Renderizar gráfico de barras
+function renderizarGraficoProdutividade(agrupado, meses) {
+    const container = document.getElementById('graficoProdutividade');
+    
+    // Calcular totais por procedimento
+    const totais = {};
+    Object.keys(agrupado).forEach(proc => {
+        totais[proc] = meses.reduce((sum, mes) => sum + (agrupado[proc][mes] || 0), 0);
+    });
+    
+    // Ordenar por total (maior para menor)
+    const procedimentosOrdenados = Object.keys(totais).sort((a, b) => totais[b] - totais[a]);
+    
+    // Valor máximo para escala
+    const valorMax = Math.max(...Object.values(totais));
+    
+    // Cores para as barras
+    const cores = ['#8B6914', '#C9A84C', '#A0826D', '#6B5D3F', '#D4AF37', '#B8860B', '#DAA520', '#CD853F'];
+    
+    let html = '<div style="display: flex; align-items: flex-end; justify-content: space-around; height: 300px; padding: 20px; background: #f9f9f9; border-radius: 8px; gap: 10px;">';
+    
+    procedimentosOrdenados.forEach((proc, idx) => {
+        const valor = totais[proc];
+        const altura = (valor / valorMax) * 100;
+        const cor = cores[idx % cores.length];
+        
+        html += `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                <div style="font-size: 12px; font-weight: bold; color: #333; text-align: center;">
+                    R$ ${formatarReal(valor)}
+                </div>
+                <div style="width: 100%; height: ${altura}%; background: ${cor}; border-radius: 5px 5px 0 0; min-height: 20px; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                </div>
+                <div style="font-size: 11px; color: #666; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${proc}">
+                    ${proc}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Exportar PDF
+function exportarProdutividadePDF() {
+    alert('Funcionalidade de exportação PDF em desenvolvimento!');
+    // Implementar com jsPDF
+}
+
+// Exportar Excel
+function exportarProdutividadeExcel() {
+    alert('Funcionalidade de exportação Excel em desenvolvimento!');
+    // Implementar com SheetJS
+}
+

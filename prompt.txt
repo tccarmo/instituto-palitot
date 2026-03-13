@@ -1,0 +1,122 @@
+Preciso corrigir e reorganizar o Relatório de Produtividade no sistema de faturamento Node.js/SQLite.
+
+PROBLEMAS A CORRIGIR:
+
+1. Os procedimentos não estão aparecendo nos checkboxes para seleção
+2. O botão "Relatório Produtividade" deve ficar DENTRO do modal de Relatórios como uma nova aba, não na página inicial
+
+ARQUIVOS DO SISTEMA:
+- public/index.html (frontend)
+- public/script.js (JavaScript)
+- public/styles.css (CSS)
+- server.js (backend Node.js)
+
+CORREÇÕES NECESSÁRIAS:
+
+PARTE 1 - INDEX.HTML:
+
+1. REMOVER o botão standalone "📊 Relatório Produtividade" da página inicial (se existir)
+
+2. ADICIONAR nova aba "Produtividade" dentro do modalRelatorios existente
+   - Localizar onde estão as abas: "Período", "Recebidos", "Valores a Receber"
+   - Adicionar botão de aba após as existentes:
+   
+   <button class="tab-button" onclick="abrirTab('tabProdutividade', this)">
+       📊 Produtividade
+   </button>
+
+3. ADICIONAR conteúdo da aba dentro do modalRelatorios:
+   - Criar div com id="tabProdutividade" style="display: none;"
+   - Mover todo o conteúdo do filtro de produtividade para dentro desta div
+   - Estrutura: filtros no topo, resultado embaixo
+
+PARTE 2 - SCRIPT.JS:
+
+1. Corrigir função carregarProcedimentosProdutividade():
+   - Garantir que busca de /api/procedimentos
+   - Popular div listaProcedimentosProdutividade com checkboxes
+   - Cada checkbox deve ter: class="checkbox-procedimento" value="nome" checked
+
+2. Corrigir função popularMedicosProdutividade():
+   - Buscar de /api/profissionais
+   - Popular select medicoProdutividade
+
+3. Adicionar evento para carregar dados ao abrir aba:
+   - Quando abrirTab('tabProdutividade') for chamada
+   - Chamar carregarProcedimentosProdutividade()
+   - Chamar popularMedicosProdutividade()
+   - Definir mês atual como padrão
+
+4. Modificar abrirTab() se necessário para suportar callback de inicialização
+
+ESTRUTURA ESPERADA DA ABA:
+
+A aba deve ficar assim dentro de modalRelatorios:
+
+<div class="tab-content" id="tabProdutividade" style="display: none;">
+    <div class="filters-container">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div>
+                <label>Mês Início:</label>
+                <input type="month" id="mesInicioProdutividade">
+            </div>
+            <div>
+                <label>Mês Fim:</label>
+                <input type="month" id="mesFimProdutividade">
+            </div>
+            <div>
+                <label>Médico:</label>
+                <select id="medicoProdutividade">
+                    <option value="todos">Todos</option>
+                </select>
+            </div>
+            <div>
+                <label>Exibir Valores:</label>
+                <select id="tipoValorProdutividade">
+                    <option value="bruto">Bruto</option>
+                    <option value="liquido">Líquido</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Procedimentos:</label>
+            <div>
+                <input type="checkbox" id="todosProcedimentosProdutividade" onchange="toggleTodosProcedimentos()" checked>
+                <label>Todos</label>
+            </div>
+            <div id="listaProcedimentosProdutividade"></div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="gerarRelatorioProdutividade()">📊 Gerar Relatório</button>
+            <button onclick="exportarProdutividadePDF()">📄 PDF</button>
+            <button onclick="exportarProdutividadeExcel()">📊 Excel</button>
+        </div>
+    </div>
+    
+    <div id="resultadoProdutividade" style="display: none;">
+        <div id="graficoProdutividade"></div>
+        <table id="tabelaProdutividade"></table>
+    </div>
+</div>
+
+FUNÇÕES QUE JÁ DEVEM EXISTIR:
+- abrirTab(tabId, buttonElement) - muda entre abas
+- gerarRelatorioProdutividade() - gera o relatório
+- toggleTodosProcedimentos() - marca/desmarca todos
+- renderizarTabelaProdutividade() - renderiza tabela
+- renderizarGraficoProdutividade() - renderiza gráfico
+
+TESTE APÓS MODIFICAR:
+1. Abrir modal Relatórios
+2. Clicar na aba Produtividade
+3. Verificar se procedimentos aparecem
+4. Verificar se médicos aparecem no select
+5. Gerar relatório e ver se funciona
+
+IMPORTANTE:
+- Não quebrar abas existentes (Período, Recebidos, etc)
+- Manter estilos consistentes com o resto do sistema
+- Usar classes CSS existentes
+- Não adicionar bibliotecas externas

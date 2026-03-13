@@ -647,6 +647,68 @@ app.get('/', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Rota: Relatório de Produtividade
+app.get('/api/relatorio-produtividade', requireAuth, (req, res) => {
+    const { mes_inicio, mes_fim, profissional, procedimentos } = req.query;
+    
+    if (!mes_inicio || !mes_fim) {
+        return res.status(400).json({ error: 'Período obrigatório' });
+    }
+    
+    // Converter mes_inicio e mes_fim (formato: 'YYYY-MM') para datas
+    const dataInicio = mes_inicio + '-01';
+    const [ano, mes] = mes_fim.split('-');
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    const dataFim = mes_fim + '-' + ultimoDia;
+    
+    let query = `
+        SELECT 
+            l.data,
+            l.procedimento,
+            l.profissional_executante,
+            l.valor,
+            l.forma_pagamento,
+            l.parcelas,
+            p.tipo as tipo_procedimento
+        FROM lancamentos l
+        LEFT JOIN procedimentos p ON l.procedimento = p.nome
+        WHERE l.data >= ? AND l.data <= ?
+    `;
+    
+    const params = [dataInicio, dataFim];
+    
+    if (profissional && profissional !== 'todos') {
+        query += ' AND l.profissional_executante = ?';
+        params.push(profissional);
+    }
+    
+    if (procedimentos && procedimentos !== 'todos') {
+        const procList = procedimentos.split(',');
+        const placeholders = procList.map(() => '?').join(',');
+        query += ` AND l.procedimento IN (${placeholders})`;
+        params.push(...procList);
+    }
+    
+    db.all(query, params, (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        // Buscar configuração de impostos
+        db.get('SELECT * FROM impostos_taxas ORDER BY id DESC LIMIT 1', (err, impostos) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            res.json({ 
+                lancamentos: rows,
+                impostos: impostos || {}
+            });
+        });
+    });
+});
+
+
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`

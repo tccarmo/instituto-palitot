@@ -428,6 +428,7 @@
                 <button class="tab-button" onclick="abrirTab(event, 'tabRelatorioPagamento')">Relatório de Produção</button>
                 <button class="tab-button" onclick="abrirTab(event, 'tabValoresReceber')">Valores a Receber</button>
                 <button class="tab-button" onclick="abrirTab(event, 'tabRelatorioRepasse')">Relatório de Repasse</button>
+                <button class="tab-button" onclick="abrirTab(event, 'tabProdutividade')">📊 Produtividade</button>
             </div>
 
             <!-- Tab: Relatório Geral -->
@@ -646,6 +647,57 @@
                             <tfoot id="totalRelatorioRepasse">
                             </tfoot>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Produtividade -->
+            <div id="tabProdutividade" class="tab-content">
+                <h3>Filtros</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mês Início</label>
+                        <input type="month" id="mesInicioProdutividade">
+                    </div>
+                    <div class="form-group">
+                        <label>Mês Fim</label>
+                        <input type="month" id="mesFimProdutividade">
+                    </div>
+                    <div class="form-group">
+                        <label>Médico</label>
+                        <select id="medicoProdutividade">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Exibir Valores</label>
+                        <select id="tipoValorProdutividade">
+                            <option value="bruto">Bruto</option>
+                            <option value="liquido">Líquido</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Procedimentos</label>
+                        <div class="checkbox-group-inline">
+                            <label><input type="checkbox" id="todosProcedimentosProdutividade" onchange="toggleTodosProcedimentos()" checked> Todos</label>
+                        </div>
+                        <div id="listaProcedimentosProdutividade" class="checkbox-group-inline" style="margin-top: 8px; max-height: 120px; overflow-y: auto;">
+                            <!-- Preenchido dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorioProdutividade()">Gerar Relatório</button>
+
+                <div id="resultadoProdutividade" style="display: none; margin-top: 20px;">
+                    <div class="relatorio-acoes">
+                        <button class="btn-secondary" onclick="exportarProdutividadePDF()">Exportar PDF</button>
+                        <button class="btn-secondary" onclick="exportarProdutividadeExcel()">Exportar Excel</button>
+                    </div>
+                    <div id="graficoProdutividade"></div>
+                    <div class="table-container">
+                        <table id="tabelaProdutividade"></table>
                     </div>
                 </div>
             </div>
@@ -1038,5 +1090,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
 </body>
 </html>
