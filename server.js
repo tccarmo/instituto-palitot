@@ -715,7 +715,7 @@ app.get('/api/relatorio-produtividade', requireAuth, (req, res) => {
 // ============================================
 
 const cron = require('node-cron');
-const path = require('path');
+
 
 // Função para criar backup
 function criarBackupAutomatico() {
