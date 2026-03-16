@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Backups - Instituto Palitot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c1a0e 0%, #4a2c0a 50%, #2c1a0e 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #2c1a0e;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #8B6914;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8B6914, #C9A84C);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .backups-list {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .backup-item {
+            display: grid;
+            grid-template-columns: 1fr 120px 100px 200px;
+            gap: 20px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+
+        .backup-item:last-child {
+            border-bottom: none;
+        }
+
+        .backup-item:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .backup-header {
+            background: #8B6914;
+            color: white;
+            font-weight: 600;
+        }
+
+        .backup-date {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .backup-size {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .backup-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 5px;
+        }
+
+        .btn-download {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-restore {
+            background: #ff9800;
+            color: white;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box h3 {
+            color: #1976D2;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .info-box p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Gerenciar Backups</h1>
+        <p class="subtitle">Sistema de Backup Automático - Instituto Palitot</p>
+
+        <div class="info-box">
+            <h3>ℹ️ Como Funciona</h3>
+            <p>
+                • Backups são criados <strong>automaticamente todos os dias às 03:00</strong><br>
+                • Os <strong>últimos 7 dias</strong> de backups são mantidos<br>
+                • Você pode <strong>baixar</strong> qualquer backup ou <strong>restaurar</strong> o sistema para uma data anterior<br>
+                • ⚠️ <strong>Restaurar substitui os dados atuais!</strong> Use com cuidado!
+            </p>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="carregarBackups()">🔄 Atualizar Lista</button>
+            <button class="btn btn-primary" onclick="criarBackupManual()">💾 Criar Backup Agora</button>
+            <button class="btn btn-secondary" onclick="window.location.href='/'">← Voltar</button>
+        </div>
+
+        <div id="backups-container">
+            <div class="loading">Carregando backups...</div>
+        </div>
+    </div>
+
+    <script>
+        async function carregarBackups() {
+            const container = document.getElementById('backups-container');
+            container.innerHTML = '<div class="loading">Carregando backups...</div>';
+
+            try {
+                const res = await fetch('/api/backups/list');
+                const data = await res.json();
+
+                if (data.backups.length === 0) {
+                    container.innerHTML = '<div class="empty">Nenhum backup disponível ainda.</div>';
+                    return;
+                }
+
+                let html = '<div class="backups-list">';
+                
+                // Header
+                html += '<div class="backup-item backup-header">';
+                html += '<div>Data do Backup</div>';
+                html += '<div>Tamanho</div>';
+                html += '<div>Criado</div>';
+                html += '<div>Ações</div>';
+                html += '</div>';
+
+                // Backups
+                data.backups.forEach(backup => {
+                    const dataBR = backup.data.split('-').reverse().join('/');
+                    const criadoBR = new Date(backup.criado).toLocaleString('pt-BR');
+                    
+                    html += '<div class="backup-item">';
+                    html += `<div class="backup-date">📦 ${dataBR}</div>`;
+                    html += `<div class="backup-size">${backup.tamanhoMB}</div>`;
+                    html += `<div style="font-size: 12px; color: #666;">${criadoBR}</div>`;
+                    html += '<div class="backup-actions">';
+                    html += `<button class="btn btn-small btn-download" onclick="baixarBackup('${backup.data}')">⬇️ Baixar</button>`;
+                    html += `<button class="btn btn-small btn-restore" onclick="restaurarBackup('${backup.data}')">🔄 Restaurar</button>`;
+                    html += '</div>';
+                    html += '</div>';
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (err) {
+                mostrarAlerta('Erro ao carregar backups: ' + err.message, 'error');
+                container.innerHTML = '<div class="empty">Erro ao carregar backups.</div>';
+            }
+        }
+
+        async function criarBackupManual() {
+            if (!confirm('Deseja criar um backup manual agora?')) return;
+
+            try {
+                const res = await fetch('/api/backups/create', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarAlerta('✅ Backup criado com sucesso!', 'success');
+                    setTimeout(carregarBackups, 1000);
+                } else {
+                    mostrarAlerta('❌ Erro ao criar backup', 'error');
+                }
+            } catch (err) {
+                mostrarAlerta('❌ Erro: ' + err.message, 'error');
+            }
+        }
+
+        function baixarBackup(data) {
+            window.location.href = `/api/backups/download/${data}`;
+            mostrarAlerta(`📥 Baixando backup de ${data.split('-').reverse().join('/')}...`, 'success');
+        }
+
+        async function restaurarBackup(data) {
+            const dataBR = data.split('-').reverse().join('/');
+            
+            if (!confirm(`⚠️ ATENÇÃO!\n\nVocê está prestes a RESTAURAR o sistema para o backup de ${dataBR}.\n\nIsso vai SUBSTITUIR todos os dados atuais!\n\nTem certeza?`)) {
+                return;
+            }
+
+            if (!confirm('Última confirmação: isso NÃO pode ser desfeito!\n\nConfirma a restauração?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/backups/restore/${data}`, { method: 'POST' });
+                const result = await res.json();
+
+                if (result.success) {
+                    mostrarAlerta('✅ Backup restaurado! A página será recarregada...', 'success');
+                    setTimeout(() => window.location.href = '/', 2000);
+                } else {
+                    mostrarAlerta('❌ Erro ao restaurar backup', 'error');
+                }
+            } catch (err) {
+                mostrarAlerta('❌ Erro: ' + err.message, 'error');
+            }
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${tipo}`;
+            alert.textContent = mensagem;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Carregar backups ao abrir página
+        carregarBackups();
+    </script>
+</body>
+</html>

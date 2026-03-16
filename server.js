@@ -709,6 +709,174 @@ app.get('/api/relatorio-produtividade', requireAuth, (req, res) => {
 });
 
 
+// ============================================
+// SISTEMA DE BACKUP AUTOMÁTICO
+// Adicione este código NO FINAL do server.js, ANTES do app.listen
+// ============================================
+
+const cron = require('node-cron');
+const path = require('path');
+
+// Função para criar backup
+function criarBackupAutomatico() {
+    const fs = require('fs');
+    const dataHoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const backupPath = `./clinica-backup-${dataHoje}.db`;
+    const dbPath = './clinica.db';
+    
+    if (!fs.existsSync(dbPath)) {
+        console.log('⚠️  Banco de dados não encontrado para backup');
+        return;
+    }
+    
+    try {
+        // Criar backup
+        fs.copyFileSync(dbPath, backupPath);
+        console.log(`✅ Backup criado: ${backupPath}`);
+        
+        // Limpar backups antigos (manter últimos 7 dias)
+        limparBackupsAntigos();
+        
+    } catch (err) {
+        console.error('❌ Erro ao criar backup:', err);
+    }
+}
+
+// Função para limpar backups antigos
+function limparBackupsAntigos() {
+    const fs = require('fs');
+    const diasManter = 7;
+    const agora = Date.now();
+    const milissegundosPorDia = 24 * 60 * 60 * 1000;
+    
+    try {
+        const arquivos = fs.readdirSync('.');
+        const backups = arquivos.filter(f => f.startsWith('clinica-backup-') && f.endsWith('.db'));
+        
+        backups.forEach(backup => {
+            const stats = fs.statSync(backup);
+            const idadeEmDias = (agora - stats.mtime.getTime()) / milissegundosPorDia;
+            
+            if (idadeEmDias > diasManter) {
+                fs.unlinkSync(backup);
+                console.log(`🗑️  Backup antigo removido: ${backup}`);
+            }
+        });
+        
+    } catch (err) {
+        console.error('⚠️  Erro ao limpar backups antigos:', err);
+    }
+}
+
+// Agendar backup diário às 03:00 (horário do servidor)
+// Formato: minuto hora dia mês dia-da-semana
+cron.schedule('0 3 * * *', () => {
+    console.log('🕐 Executando backup automático agendado...');
+    criarBackupAutomatico();
+});
+
+// Criar backup ao iniciar o servidor (primeira vez)
+console.log('📋 Criando backup inicial...');
+criarBackupAutomatico();
+
+// Rota: Listar backups disponíveis
+app.get('/api/backups/list', requireAuth, (req, res) => {
+    const fs = require('fs');
+    
+    try {
+        const arquivos = fs.readdirSync('.');
+        const backups = arquivos
+            .filter(f => f.startsWith('clinica-backup-') && f.endsWith('.db'))
+            .map(f => {
+                const stats = fs.statSync(f);
+                const data = f.replace('clinica-backup-', '').replace('.db', '');
+                return {
+                    nome: f,
+                    data: data,
+                    tamanho: stats.size,
+                    tamanhoMB: (stats.size / 1024 / 1024).toFixed(2) + ' MB',
+                    criado: stats.mtime.toISOString()
+                };
+            })
+            .sort((a, b) => b.data.localeCompare(a.data)); // Mais recente primeiro
+        
+        res.json({
+            total: backups.length,
+            backups: backups
+        });
+        
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao listar backups' });
+    }
+});
+
+// Rota: Baixar backup específico
+app.get('/api/backups/download/:data', requireAuth, (req, res) => {
+    const fs = require('fs');
+    const data = req.params.data;
+    const backupPath = `./clinica-backup-${data}.db`;
+    
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ error: 'Backup não encontrado' });
+    }
+    
+    res.download(backupPath, `backup-${data}.db`, (err) => {
+        if (err) {
+            console.error('Erro ao baixar backup:', err);
+            res.status(500).json({ error: 'Erro ao baixar backup' });
+        }
+    });
+});
+
+// Rota: Restaurar backup (CUIDADO!)
+app.post('/api/backups/restore/:data', requireAuth, (req, res) => {
+    const fs = require('fs');
+    const data = req.params.data;
+    const backupPath = `./clinica-backup-${data}.db`;
+    const dbPath = './clinica.db';
+    
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ error: 'Backup não encontrado' });
+    }
+    
+    try {
+        // Fazer backup do atual antes de restaurar
+        const backupAtual = `./clinica-backup-antes-restauracao-${Date.now()}.db`;
+        fs.copyFileSync(dbPath, backupAtual);
+        
+        // Restaurar backup
+        fs.copyFileSync(backupPath, dbPath);
+        
+        res.json({ 
+            success: true, 
+            message: 'Backup restaurado com sucesso',
+            backupAnterior: backupAtual
+        });
+        
+    } catch (err) {
+        console.error('Erro ao restaurar backup:', err);
+        res.status(500).json({ error: 'Erro ao restaurar backup' });
+    }
+});
+
+// Rota: Criar backup manual
+app.post('/api/backups/create', requireAuth, (req, res) => {
+    try {
+        criarBackupAutomatico();
+        res.json({ 
+            success: true, 
+            message: 'Backup manual criado com sucesso' 
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao criar backup' });
+    }
+});
+
+console.log('✅ Sistema de backup automático ativado!');
+console.log('📋 Backups serão criados diariamente às 03:00');
+console.log('📋 Backups mantidos: últimos 7 dias');
+
+
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`
