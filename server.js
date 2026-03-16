@@ -709,6 +709,74 @@ app.get('/api/relatorio-produtividade', requireAuth, (req, res) => {
 });
 
 
+const multer = require('multer');
+const fs = require('fs');
+
+// Configurar multer para upload de arquivos
+const upload = multer({ dest: 'uploads/' });
+
+// Rota: Download do banco de dados (nuvem → local)
+app.get('/api/sync/download', requireAuth, (req, res) => {
+    const dbPath = './clinica.db';
+    
+    if (!fs.existsSync(dbPath)) {
+        return res.status(404).json({ error: 'Banco de dados não encontrado' });
+    }
+    
+    res.download(dbPath, 'clinica.db', (err) => {
+        if (err) {
+            console.error('Erro ao enviar banco:', err);
+            res.status(500).json({ error: 'Erro ao baixar banco de dados' });
+        }
+    });
+});
+
+// Rota: Upload do banco de dados (local → nuvem)
+app.post('/api/sync/upload', requireAuth, upload.single('database'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Arquivo não enviado' });
+    }
+    
+    const tempPath = req.file.path;
+    const dbPath = './clinica.db';
+    
+    // Fazer backup do banco atual
+    const backupPath = `./clinica-backup-${Date.now()}.db`;
+    
+    try {
+        // Backup do banco atual
+        if (fs.existsSync(dbPath)) {
+            fs.copyFileSync(dbPath, backupPath);
+        }
+        
+        // Substituir pelo novo
+        fs.copyFileSync(tempPath, dbPath);
+        
+        // Remover arquivo temporário
+        fs.unlinkSync(tempPath);
+        
+        console.log('✅ Banco de dados sincronizado!');
+        
+        res.json({ 
+            success: true, 
+            message: 'Banco de dados atualizado com sucesso',
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (err) {
+        console.error('Erro ao sincronizar:', err);
+        
+        // Restaurar backup em caso de erro
+        if (fs.existsSync(backupPath)) {
+            fs.copyFileSync(backupPath, dbPath);
+        }
+        
+        res.status(500).json({ error: 'Erro ao sincronizar banco de dados' });
+    }
+});
+
+
+
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`
