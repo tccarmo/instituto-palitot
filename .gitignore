@@ -1,7 +1,5 @@
 # Banco de dados
-clinica.db
 clinica-backup*.db
-*.db
 
 # Node
 node_modules/
