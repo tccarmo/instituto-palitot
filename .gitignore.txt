@@ -1,0 +1,17 @@
+# Banco de dados
+clinica.db
+clinica-backup*.db
+*.db
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Uploads
+uploads/
+
+# Logs
+*.log
+
+# Ambiente
+.env

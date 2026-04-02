@@ -1,0 +1,345 @@
+═══════════════════════════════════════════════════════════════
+🛡️ SISTEMA DE BACKUP AUTOMÁTICO - Guia de Instalação
+═══════════════════════════════════════════════════════════════
+
+CRIADO POR: Claude AI
+DATA: 16/03/2026
+PARA: Instituto Palitot - Sistema de Faturamento
+
+═══════════════════════════════════════════════════════════════
+📋 O QUE FOI CRIADO
+═══════════════════════════════════════════════════════════════
+
+1. codigo-backup-automatico.js
+   → Código para adicionar no server.js
+   → Faz backup automático diário
+   → Mantém últimos 7 dias
+
+2. gerenciar-backups.html
+   → Página web para gerenciar backups
+   → Baixar backups
+   → Restaurar sistema
+   → Criar backup manual
+
+═══════════════════════════════════════════════════════════════
+🚀 INSTALAÇÃO - PASSO A PASSO
+═══════════════════════════════════════════════════════════════
+
+PASSO 1: Instalar Dependência
+─────────────────────────────────────────────────────────────
+
+No terminal, na pasta clinica-web:
+
+npm install node-cron --save
+
+
+PASSO 2: Adicionar Código no server.js
+─────────────────────────────────────────────────────────────
+
+1. Abra o arquivo: server.js
+
+2. Vá ATÉ O FINAL do arquivo
+
+3. Procure a linha:
+   app.listen(PORT, () => {
+
+4. ANTES dessa linha, cole TODO o conteúdo do arquivo:
+   codigo-backup-automatico.js
+
+5. Salve o arquivo
+
+
+PASSO 3: Adicionar Página de Gerenciamento
+─────────────────────────────────────────────────────────────
+
+1. Copie o arquivo: gerenciar-backups.html
+
+2. Cole na pasta: clinica-web/public/
+
+3. Estrutura final:
+   clinica-web/
+   ├── public/
+   │   ├── index.html
+   │   ├── login.html
+   │   ├── gerenciar-backups.html  ← AQUI
+   │   ├── script.js
+   │   └── styles.css
+   └── server.js
+
+
+PASSO 4: Atualizar package.json
+─────────────────────────────────────────────────────────────
+
+Verifique que package.json tem node-cron:
+
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.7",
+    "bcrypt": "^6.0.0",
+    "express-session": "^1.19.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "multer": "^2.1.1",
+    "node-cron": "^3.0.3"  ← NOVA DEPENDÊNCIA
+  }
+}
+
+
+PASSO 5: Criar .gitignore (IMPORTANTE!)
+─────────────────────────────────────────────────────────────
+
+Crie arquivo .gitignore na raiz:
+
+# Banco de dados
+clinica.db
+clinica-backup*.db
+*.db
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Uploads
+uploads/
+
+# Logs
+*.log
+
+# Ambiente
+.env
+
+
+PASSO 6: Remover .db do Git
+─────────────────────────────────────────────────────────────
+
+git rm --cached clinica.db
+git rm --cached clinica-backup*.db
+git add .gitignore
+git commit -m "Adicionar sistema de backup e ignorar .db"
+
+
+PASSO 7: Fazer Deploy
+─────────────────────────────────────────────────────────────
+
+git add .
+git commit -m "Adicionar sistema de backup automático"
+git push
+
+Aguarde Railway fazer deploy (2-3 minutos)
+
+
+PASSO 8: Testar
+─────────────────────────────────────────────────────────────
+
+1. Acesse: https://instituto-palitot-production.up.railway.app
+
+2. Faça login
+
+3. Acesse: /gerenciar-backups.html
+   OU
+   https://instituto-palitot-production.up.railway.app/gerenciar-backups.html
+
+4. Deve aparecer a tela de backups!
+
+
+═══════════════════════════════════════════════════════════════
+🎯 COMO FUNCIONA
+═══════════════════════════════════════════════════════════════
+
+BACKUP AUTOMÁTICO:
+─────────────────────────────────────────────────────────────
+
+✅ Roda TODO DIA às 03:00 da manhã
+✅ Cria arquivo: clinica-backup-2026-03-16.db
+✅ Mantém últimos 7 dias
+✅ Apaga backups com mais de 7 dias automaticamente
+
+
+BACKUP MANUAL:
+─────────────────────────────────────────────────────────────
+
+✅ Acesse /gerenciar-backups.html
+✅ Clique em "💾 Criar Backup Agora"
+✅ Backup criado na hora!
+
+
+BAIXAR BACKUP:
+─────────────────────────────────────────────────────────────
+
+1. Acesse /gerenciar-backups.html
+2. Lista mostra todos os backups
+3. Clique em "⬇️ Baixar" no backup desejado
+4. Arquivo baixado!
+
+
+RESTAURAR SISTEMA:
+─────────────────────────────────────────────────────────────
+
+⚠️ CUIDADO! Isso substitui dados atuais!
+
+1. Acesse /gerenciar-backups.html
+2. Clique em "🔄 Restaurar" no backup desejado
+3. Confirme 2 vezes (é sério!)
+4. Sistema restaurado para aquela data
+
+
+═══════════════════════════════════════════════════════════════
+📊 ROTAS DA API
+═══════════════════════════════════════════════════════════════
+
+GET  /api/backups/list
+→ Lista todos os backups disponíveis
+→ Retorna: JSON com lista de backups
+
+GET  /api/backups/download/:data
+→ Baixa backup específico
+→ Exemplo: /api/backups/download/2026-03-16
+
+POST /api/backups/create
+→ Cria backup manual
+→ Retorna: JSON com sucesso/erro
+
+POST /api/backups/restore/:data
+→ Restaura backup (CUIDADO!)
+→ Faz backup do atual antes de restaurar
+→ Exemplo: /api/backups/restore/2026-03-16
+
+
+═══════════════════════════════════════════════════════════════
+🔒 SEGURANÇA
+═══════════════════════════════════════════════════════════════
+
+✅ Todas as rotas requerem login (requireAuth)
+✅ Backups antes de restaurar
+✅ Confirmação dupla na interface
+✅ .gitignore bloqueia .db no Git
+✅ Apenas 7 backups mantidos (economia de espaço)
+
+
+═══════════════════════════════════════════════════════════════
+💡 DICAS DE USO
+═══════════════════════════════════════════════════════════════
+
+1. ROTINA DIÁRIA:
+   → Sistema faz backup sozinho às 03:00
+   → Você não precisa fazer nada!
+
+2. ANTES DE GRANDES MUDANÇAS:
+   → Acesse /gerenciar-backups.html
+   → Crie backup manual
+   → Aí faz as mudanças
+
+3. SE ALGO DER ERRADO:
+   → Acesse /gerenciar-backups.html
+   → Baixe backup do dia anterior
+   → Ou restaure direto
+
+4. VERIFICAÇÃO SEMANAL:
+   → Acesse /gerenciar-backups.html
+   → Veja se backups estão sendo criados
+   → Baixe um para ter cópia local
+
+
+═══════════════════════════════════════════════════════════════
+🆘 SOLUÇÃO DE PROBLEMAS
+═══════════════════════════════════════════════════════════════
+
+PROBLEMA: Backup não está rodando
+─────────────────────────────────────────────────────────────
+
+SOLUÇÃO:
+1. Verifique logs do Railway:
+   railway logs
+
+2. Procure por:
+   "✅ Sistema de backup automático ativado!"
+   "📋 Backup criado: clinica-backup-XXXX.db"
+
+3. Se não aparecer, node-cron não foi instalado:
+   npm install node-cron
+
+
+PROBLEMA: Erro ao acessar /gerenciar-backups.html
+─────────────────────────────────────────────────────────────
+
+SOLUÇÃO:
+1. Verifique se arquivo está em public/
+2. Faça git push
+3. Aguarde deploy
+4. Limpe cache do navegador (Ctrl+Shift+R)
+
+
+PROBLEMA: Lista de backups vazia
+─────────────────────────────────────────────────────────────
+
+SOLUÇÃO:
+1. Aguarde até às 03:00 (backup automático)
+2. OU clique em "💾 Criar Backup Agora"
+3. Aguarde 1-2 segundos
+4. Clique em "🔄 Atualizar Lista"
+
+
+PROBLEMA: Restaurar não funciona
+─────────────────────────────────────────────────────────────
+
+SOLUÇÃO:
+1. Verifique se está logado
+2. Verifique conexão com internet
+3. Tente baixar o backup primeiro
+4. Depois restaure manualmente
+
+
+═══════════════════════════════════════════════════════════════
+✅ CHECKLIST PÓS-INSTALAÇÃO
+═══════════════════════════════════════════════════════════════
+
+□ node-cron instalado (npm install node-cron)
+□ Código adicionado no server.js
+□ gerenciar-backups.html em public/
+□ .gitignore criado e configurado
+□ git rm --cached clinica.db executado
+□ Deploy feito no Railway
+□ Testado: /gerenciar-backups.html abre
+□ Testado: Criar backup manual funciona
+□ Testado: Baixar backup funciona
+□ Aguardando: Primeiro backup automático (03:00)
+
+
+═══════════════════════════════════════════════════════════════
+📅 CRONOGRAMA DE BACKUPS
+═══════════════════════════════════════════════════════════════
+
+Horário: 03:00 (horário do servidor Railway)
+
+Exemplo de backups mantidos hoje (16/03/2026):
+
+✅ clinica-backup-2026-03-16.db (hoje)
+✅ clinica-backup-2026-03-15.db (ontem)
+✅ clinica-backup-2026-03-14.db (2 dias atrás)
+✅ clinica-backup-2026-03-13.db (3 dias atrás)
+✅ clinica-backup-2026-03-12.db (4 dias atrás)
+✅ clinica-backup-2026-03-11.db (5 dias atrás)
+✅ clinica-backup-2026-03-10.db (6 dias atrás)
+🗑️ clinica-backup-2026-03-09.db (será apagado)
+
+
+═══════════════════════════════════════════════════════════════
+🎉 PRONTO!
+═══════════════════════════════════════════════════════════════
+
+Seu sistema agora tem:
+
+✅ Backup automático diário
+✅ Interface web para gerenciar
+✅ Proteção contra perda de dados
+✅ Histórico de 7 dias
+✅ Restauração fácil
+✅ Nunca mais vai perder dados!
+
+
+═══════════════════════════════════════════════════════════════
+
+Dúvidas? Problemas? Me avise! 🚀
+
+═══════════════════════════════════════════════════════════════

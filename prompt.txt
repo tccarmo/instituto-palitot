@@ -1,122 +1,73 @@
-Preciso corrigir e reorganizar o Relatório de Produtividade no sistema de faturamento Node.js/SQLite.
+URGENTE: Bug crítico no relatório de despesas - despesas de março aparecendo no filtro de abril
 
-PROBLEMAS A CORRIGIR:
+PROBLEMA ATUAL:
+Ao filtrar despesas de 01/04/2026 a 30/04/2026, estão aparecendo TODAS as despesas de março também, incluindo:
+- Despesas à vista de março (ex: Salário 04/03/2026 PIX 1/1)
+- Despesas parceladas de março (ex: INSS 20/03/2026 BOLETO 1/1)
+- Despesas de dinheiro de março (ex: Auxílios Cirurgia 04/03/2026 DINHEIRO 1/1)
 
-1. Os procedimentos não estão aparecendo nos checkboxes para seleção
-2. O botão "Relatório Produtividade" deve ficar DENTRO do modal de Relatórios como uma nova aba, não na página inicial
+EVIDÊNCIA DO BUG:
+Filtro aplicado: 01/04/2026 a 30/04/2026
+Despesas que aparecem ERRADAS:
+- 20/03/2026 - INSS - R$ 1.758,26 - BOLETO 1/1
+- 20/03/2026 - FGTS - R$ 374,50 - PIX 1/1
+- 10/03/2026 - Plano de Saúde - R$ 278,03 - BOLETO 1/1
+- 04/03/2026 - Salário - R$ 4.424,00 - PIX 1/1
+- 04/03/2026 - Vale Alimentação - R$ 800,00 - PIX 1/1
+- 04/03/2026 - Auxílios Cirurgia Lais - R$ 1.050,00 - DINHEIRO 1/1
+- 04/03/2026 - Auxílios Cirurgia Paulo - R$ 900,00 - DINHEIRO 1/1
 
-ARQUIVOS DO SISTEMA:
-- public/index.html (frontend)
-- public/script.js (JavaScript)
-- public/styles.css (CSS)
-- server.js (backend Node.js)
+Despesas que aparecem CORRETAS:
+- 01/04/2026 - Salário - R$ 4.425,00 - PIX 1/1
 
-CORREÇÕES NECESSÁRIAS:
+ARQUIVOS:
+- server.js (rota API que busca despesas)
+- public/script.js (função gerarRelatorioDespesas)
 
-PARTE 1 - INDEX.HTML:
+ANÁLISE DO BUG:
+O filtro de data está completamente quebrado. Provavelmente:
+1. A query SQL está pegando TODAS as despesas sem filtro de data
+2. OU o filtro está sendo aplicado ERRADO
+3. OU está comparando formato de data errado (BR vs ISO)
 
-1. REMOVER o botão standalone "📊 Relatório Produtividade" da página inicial (se existir)
+CORREÇÃO NECESSÁRIA:
 
-2. ADICIONAR nova aba "Produtividade" dentro do modalRelatorios existente
-   - Localizar onde estão as abas: "Período", "Recebidos", "Valores a Receber"
-   - Adicionar botão de aba após as existentes:
-   
-   <button class="tab-button" onclick="abrirTab('tabProdutividade', this)">
-       📊 Produtividade
-   </button>
+1. LOCALIZAR a rota /api/despesas no server.js
+2. VERIFICAR a query SQL - deve ter WHERE para filtrar por data
+3. GARANTIR que está filtrando por:
+   - data_lancamento >= dataInicial
+   - data_lancamento <= dataFinal
+4. VERIFICAR formato de data:
+   - Se API recebe 01/04/2026 (BR), converter para 2026-04-01 (ISO)
+   - Comparar datas no formato correto
 
-3. ADICIONAR conteúdo da aba dentro do modalRelatorios:
-   - Criar div com id="tabProdutividade" style="display: none;"
-   - Mover todo o conteúdo do filtro de produtividade para dentro desta div
-   - Estrutura: filtros no topo, resultado embaixo
+5. LOCALIZAR função gerarRelatorioDespesas() no script.js
+6. VERIFICAR se está enviando datas corretas para API
+7. VERIFICAR se não há bug na expansão de parcelas
 
-PARTE 2 - SCRIPT.JS:
+LÓGICA CORRETA ESPERADA:
 
-1. Corrigir função carregarProcedimentosProdutividade():
-   - Garantir que busca de /api/procedimentos
-   - Popular div listaProcedimentosProdutividade com checkboxes
-   - Cada checkbox deve ter: class="checkbox-procedimento" value="nome" checked
+Para despesa À VISTA (parcelas = 1):
+- Mostrar SE data_lancamento estiver dentro do período filtrado
+- Exemplo: Despesa 04/03 não deve aparecer em filtro 01/04 a 30/04
 
-2. Corrigir função popularMedicosProdutividade():
-   - Buscar de /api/profissionais
-   - Popular select medicoProdutividade
+Para despesa PARCELADA (parcelas > 1):
+- Expandir em parcelas individuais
+- Calcular data de cada parcela
+- Mostrar APENAS parcelas que caem no período
+- Exemplo: Despesa 20/03 3x crédito
+  * Parcela 1: 20/03 (não mostrar)
+  * Parcela 2: 20/04 (MOSTRAR)
+  * Parcela 3: 20/05 (não mostrar)
 
-3. Adicionar evento para carregar dados ao abrir aba:
-   - Quando abrirTab('tabProdutividade') for chamada
-   - Chamar carregarProcedimentosProdutividade()
-   - Chamar popularMedicosProdutividade()
-   - Definir mês atual como padrão
-
-4. Modificar abrirTab() se necessário para suportar callback de inicialização
-
-ESTRUTURA ESPERADA DA ABA:
-
-A aba deve ficar assim dentro de modalRelatorios:
-
-<div class="tab-content" id="tabProdutividade" style="display: none;">
-    <div class="filters-container">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-            <div>
-                <label>Mês Início:</label>
-                <input type="month" id="mesInicioProdutividade">
-            </div>
-            <div>
-                <label>Mês Fim:</label>
-                <input type="month" id="mesFimProdutividade">
-            </div>
-            <div>
-                <label>Médico:</label>
-                <select id="medicoProdutividade">
-                    <option value="todos">Todos</option>
-                </select>
-            </div>
-            <div>
-                <label>Exibir Valores:</label>
-                <select id="tipoValorProdutividade">
-                    <option value="bruto">Bruto</option>
-                    <option value="liquido">Líquido</option>
-                </select>
-            </div>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <label>Procedimentos:</label>
-            <div>
-                <input type="checkbox" id="todosProcedimentosProdutividade" onchange="toggleTodosProcedimentos()" checked>
-                <label>Todos</label>
-            </div>
-            <div id="listaProcedimentosProdutividade"></div>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <button onclick="gerarRelatorioProdutividade()">📊 Gerar Relatório</button>
-            <button onclick="exportarProdutividadePDF()">📄 PDF</button>
-            <button onclick="exportarProdutividadeExcel()">📊 Excel</button>
-        </div>
-    </div>
-    
-    <div id="resultadoProdutividade" style="display: none;">
-        <div id="graficoProdutividade"></div>
-        <table id="tabelaProdutividade"></table>
-    </div>
-</div>
-
-FUNÇÕES QUE JÁ DEVEM EXISTIR:
-- abrirTab(tabId, buttonElement) - muda entre abas
-- gerarRelatorioProdutividade() - gera o relatório
-- toggleTodosProcedimentos() - marca/desmarca todos
-- renderizarTabelaProdutividade() - renderiza tabela
-- renderizarGraficoProdutividade() - renderiza gráfico
-
-TESTE APÓS MODIFICAR:
-1. Abrir modal Relatórios
-2. Clicar na aba Produtividade
-3. Verificar se procedimentos aparecem
-4. Verificar se médicos aparecem no select
-5. Gerar relatório e ver se funciona
+TESTE APÓS CORREÇÃO:
+Filtrar 01/04/2026 a 30/04/2026:
+- Despesas de março à vista: NÃO devem aparecer
+- Despesas de abril à vista: DEVEM aparecer
+- Parcelas de abril de despesas anteriores: DEVEM aparecer
+- Parcelas de maio de despesas de abril: NÃO devem aparecer
 
 IMPORTANTE:
-- Não quebrar abas existentes (Período, Recebidos, etc)
-- Manter estilos consistentes com o resto do sistema
-- Usar classes CSS existentes
-- Não adicionar bibliotecas externas
+Este é um bug crítico que está mostrando dados completamente errados no relatório financeiro. Precisa ser corrigido com urgência.
+
+Por favor, encontre e corrija o bug agora.

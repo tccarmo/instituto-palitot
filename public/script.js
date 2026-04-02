@@ -2467,7 +2467,12 @@ async function gerarRelatorioDespesas() {
         const valorPorParcela = d.valor / parcelas;
         
         if (parcelas === 1 || d.forma_pagamento === 'pix' || d.forma_pagamento === 'dinheiro' || d.forma_pagamento === 'debito') {
-            // Pagamento à vista ou débito - valor integral no mesmo mês
+            // Pagamento à vista ou débito - verificar se a data está no período filtrado
+            const dataDesp = new Date(d.data + 'T00:00:00');
+            const dentroDoFiltro =
+                (!dataInicial || dataDesp >= new Date(dataInicial + 'T00:00:00')) &&
+                (!dataFinal || dataDesp <= new Date(dataFinal + 'T23:59:59'));
+            if (!dentroDoFiltro) return;
             despesasPorMes.push({
                 ...d,
                 valorMes: d.valor,
