@@ -1,7 +1,6 @@
 # Banco de dados
-clinica.db
 clinica-backup*.db
-*.db
+# clinica.db - temporariamente incluido para restaurar no Railway
 
 # Node
 node_modules/
