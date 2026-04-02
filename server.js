@@ -86,14 +86,17 @@ app.get('/api/session', (req, res) => {
 // Inicializar banco de dados
 const fs = require('fs');
 
-// Se não existe clinica.db, copiar do backup
-if (!fs.existsSync('./clinica.db') && fs.existsSync('./clinica-backup.db')) {
-    console.log('📋 Copiando banco de dados do backup...');
-    fs.copyFileSync('./clinica-backup.db', './clinica.db');
-    console.log('✅ Banco copiado!');
+// Caminho do banco - usa Volume persistente no Railway se disponível
+const DB_PATH = fs.existsSync('/app/data') ? '/app/data/clinica.db' : './clinica.db';
+
+// Se não existe banco no Volume mas existe localmente, copiar para o Volume
+if (DB_PATH === '/app/data/clinica.db' && !fs.existsSync('/app/data/clinica.db') && fs.existsSync('./clinica.db')) {
+    console.log('📋 Copiando banco de dados para o Volume...');
+    fs.copyFileSync('./clinica.db', '/app/data/clinica.db');
+    console.log('✅ Banco copiado para o Volume!');
 }
 
-const db = new sqlite3.Database('./clinica.db', (err) => {
+const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
         console.error('Erro ao conectar ao banco de dados:', err);
     } else {
@@ -722,7 +725,7 @@ function criarBackupAutomatico() {
     const fs = require('fs');
     const dataHoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const backupPath = `./clinica-backup-${dataHoje}.db`;
-    const dbPath = './clinica.db';
+    const dbPath = DB_PATH;
     
     if (!fs.existsSync(dbPath)) {
         console.log('⚠️  Banco de dados não encontrado para backup');
@@ -833,7 +836,7 @@ app.post('/api/backups/restore/:data', requireAuth, (req, res) => {
     const fs = require('fs');
     const data = req.params.data;
     const backupPath = `./clinica-backup-${data}.db`;
-    const dbPath = './clinica.db';
+    const dbPath = DB_PATH;
     
     if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ error: 'Backup não encontrado' });
